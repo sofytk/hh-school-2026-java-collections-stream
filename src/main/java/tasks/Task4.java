@@ -3,8 +3,10 @@ package tasks;
 import common.ApiPersonDto;
 import common.Person;
 import common.PersonConverter;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /*
 Задача 4
@@ -22,6 +24,9 @@ public class Task4 {
   }
 
   public List<ApiPersonDto> convert(List<Person> persons) {
-    return new ArrayList<>();
+    List<ApiPersonDto> convertedPersonsToDto = persons.stream()
+        .map(person -> personConverter.convert(person))
+        .toList();
+    return convertedPersonsToDto;
   }
 }

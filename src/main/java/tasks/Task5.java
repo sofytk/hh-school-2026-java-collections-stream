@@ -23,6 +23,9 @@ public class Task5 {
   }
 
   public List<ApiPersonDto> convert(List<Person> persons, Map<Integer, Integer> personAreaIds) {
-    return new ArrayList<>();
+    List<ApiPersonDto> convertedPersonsToDto = persons.stream()
+        .map(person -> personConverter.convert(person, personAreaIds.get(person.id())))
+        .toList();
+    return convertedPersonsToDto;
   }
 }
