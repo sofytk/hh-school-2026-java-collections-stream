@@ -3,17 +3,24 @@ package tasks;
 import common.Person;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ExtendWith(MockitoExtension.class)
 public class Task9Test {
 
   private static Person person1, person2, person3, person4;
   private static List<Person> persons = new ArrayList<>();
-  private static Task9 task9 = new Task9();
+
+  @InjectMocks
+  private Task9 task9;
 
   @BeforeAll
   public static void before() {
