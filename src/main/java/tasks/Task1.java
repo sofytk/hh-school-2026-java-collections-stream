@@ -25,16 +25,14 @@ public class Task1 {
   public List<Person> findOrderedPersons(List<Integer> personIds) {
     Set<Person> persons = personService.findPersons(personIds);
     Map<Integer, Person> personById = persons.stream().collect(Collectors.toMap(Person::id, Function.identity()));
-    List<Person> personsList = new ArrayList<>();
-    for (Integer id : personIds) {
-      if (personById.get(id) != null) personsList.add(personById.get(id));
-    }
+    return personIds.stream()
+        .map(personById::get)
+        .filter(Objects::nonNull)
+        .toList();
     /* если n - размер списка personIds, m - размер сета persons
     Временная сложность: O(n+m), т.к. проход и добавление элементов в map примерно О(m),
-    проход по personIds - О(n), поиск в map(personsById) - О(1), т.к. ищем по ключу(нашему id),
-    добавление в конец списка personsList - О(1). Получаем, что сложность по времени равна О(n+m).
-    Сложность по памяти: создание новых Map - personsById и List - personsList: O(n+m)
+    проход по personIds с map() и filter() - О(n), поиск в map(personsById) - О(1), т.к. ищем по ключу(нашему id).
+    Сложность по памяти: создание Map - personsById и результирующего List: O(n+m)
     */
-    return personsList;
   }
 }

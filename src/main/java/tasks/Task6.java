@@ -24,11 +24,9 @@ public class Task6 {
     Set<String> setOfPersonsDescriptions = new HashSet<>();
     Map<Integer, String> personNameById = persons.stream().collect(Collectors.toMap(Person::id, Person::firstName));
     Map<Integer, String> areaNameById = areas.stream().collect(Collectors.toMap(Area::getId, Area::getName));
-    for (Map.Entry<Integer, Set<Integer>> entry : personAreaIds.entrySet()) {
-      setOfPersonsDescriptions.addAll(entry.getValue().stream()
-          .map(areaId ->
-            personNameById.get(entry.getKey()) + " - " + areaNameById.get(areaId)
-          )
+    for (Integer key: personAreaIds.keySet()) {
+      setOfPersonsDescriptions.addAll(personAreaIds.get(key).stream()
+          .map(areaId -> personNameById.get(key) + " - " + areaNameById.get(areaId))
           .collect(Collectors.toSet()));
     }
     return setOfPersonsDescriptions;

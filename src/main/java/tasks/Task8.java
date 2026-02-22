@@ -7,6 +7,7 @@ import common.Resume;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,6 +17,9 @@ import java.util.stream.Collectors;
   Сервис умеет по personId искать их резюме (у каждой персоны может быть несколько резюме)
   На выходе хотим получить объекты с персоной и ее списком резюме
  */
+  /* ОБНОВЛЕНИЕ: Убрала цикл, переписала под стримы, с помощью групировки. Насчёт personId, мне кажется лучше вынести было, потому что по сути
+  filter() будет вычислять person.getId() при каждой итерации, а так она как бы один раз сохраняется,
+  а потом используется. Хотя может и нецелеобразно, потому что person.getId() не такая тяжёловестная операция. */
 public class Task8 {
   private final PersonService personService;
 
@@ -24,17 +28,12 @@ public class Task8 {
   }
 
   public Set<PersonWithResumes> enrichPersonsWithResumes(Collection<Person> persons) {
-    Set<PersonWithResumes> personWithResumes = new HashSet<>();
-    Set<Integer> personIds = persons.stream().map(person -> person.id()).collect(Collectors.toSet());
+    Set<Integer> personIds = persons.stream().map(Person::id).collect(Collectors.toSet());
     Set<Resume> resumes = personService.findResumes(personIds);
-
-    for (Person person : persons) {
-      Integer personId = person.id();
-      Set<Resume> personResume = resumes.stream().filter(resume -> resume.personId().equals(personId))
-          .collect(Collectors.toSet());
-      personWithResumes.add(new PersonWithResumes(person, personResume));
-    }
-
-    return personWithResumes;
+    Map<Integer, Set<Resume>> personIdResumes = resumes.stream()
+        .collect(Collectors.groupingBy(Resume::personId, Collectors.toSet()));
+    return persons.stream()
+        .map(person -> new PersonWithResumes(person, personIdResumes.getOrDefault(person.id(), Set.of())))
+        .collect(Collectors.toSet());
   }
 }
