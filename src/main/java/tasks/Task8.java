@@ -4,8 +4,12 @@ import common.Person;
 import common.PersonService;
 import common.PersonWithResumes;
 import common.Resume;
+
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /*
   Еще один вариант задачи обогащения
@@ -13,6 +17,9 @@ import java.util.Set;
   Сервис умеет по personId искать их резюме (у каждой персоны может быть несколько резюме)
   На выходе хотим получить объекты с персоной и ее списком резюме
  */
+  /* ОБНОВЛЕНИЕ: Убрала цикл, переписала под стримы, с помощью групировки. Насчёт personId, мне кажется лучше вынести было, потому что по сути
+  filter() будет вычислять person.getId() при каждой итерации, а так она как бы один раз сохраняется,
+  а потом используется. Хотя может и нецелеобразно, потому что person.getId() не такая тяжёловестная операция. */
 public class Task8 {
   private final PersonService personService;
 
@@ -21,7 +28,12 @@ public class Task8 {
   }
 
   public Set<PersonWithResumes> enrichPersonsWithResumes(Collection<Person> persons) {
-    Set<Resume> resumes = personService.findResumes(Set.of());
-    return Set.of();
+    Set<Integer> personIds = persons.stream().map(Person::id).collect(Collectors.toSet());
+    Set<Resume> resumes = personService.findResumes(personIds);
+    Map<Integer, Set<Resume>> personIdResumes = resumes.stream()
+        .collect(Collectors.groupingBy(Resume::personId, Collectors.toSet()));
+    return persons.stream()
+        .map(person -> new PersonWithResumes(person, personIdResumes.getOrDefault(person.id(), Set.of())))
+        .collect(Collectors.toSet());
   }
 }

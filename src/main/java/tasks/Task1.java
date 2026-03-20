@@ -2,9 +2,10 @@ package tasks;
 
 import common.Person;
 import common.PersonService;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /*
 Задача 1
@@ -23,6 +24,15 @@ public class Task1 {
 
   public List<Person> findOrderedPersons(List<Integer> personIds) {
     Set<Person> persons = personService.findPersons(personIds);
-    return Collections.emptyList();
+    Map<Integer, Person> personById = persons.stream().collect(Collectors.toMap(Person::id, Function.identity()));
+    return personIds.stream()
+        .map(personById::get)
+        .filter(Objects::nonNull)
+        .toList();
+    /* если n - размер списка personIds, m - размер сета persons
+    Временная сложность: O(n+m), т.к. проход и добавление элементов в map примерно О(m),
+    проход по personIds с map() и filter() - О(n), поиск в map(personsById) - О(1), т.к. ищем по ключу(нашему id).
+    Сложность по памяти: создание Map - personsById и результирующего List: O(n+m)
+    */
   }
 }

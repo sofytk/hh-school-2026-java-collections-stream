@@ -1,14 +1,8 @@
 package tasks;
 
 import common.Person;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -21,78 +15,102 @@ P.P.S Здесь ваши правки необходимо прокоммент
  */
 public class Task9 {
 
-  private long count;
+  //private long count;
 
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
+  /* ИЗМЕНЕНИЯ: убираем persons.remove(0), т.к. это не выгодно по времени, потому что удаляя первый элемент,
+     список перезаписывается полность, сдвигаясь на один элемент влево, т.е. получаем сложность О(n).
+     Поэтому вызовем у stream метод skip(), который просто пропустит первого человека.
+     ОБНОВЛЕНИЕ: да, можно убрать persons.size() == 0, т.к. skip() и так вернёт пустой список, если элементов меньше,
+     чем n (количество начальных элементов, которые нужно пропустить).
+  */
   public List<String> getNames(List<Person> persons) {
-    if (persons.size() == 0) {
-      return Collections.emptyList();
-    }
-    persons.remove(0);
-    return persons.stream().map(Person::firstName).collect(Collectors.toList());
+    return persons.stream().skip(1).map(Person::firstName).collect(Collectors.toList());
   }
 
   // Зачем-то нужны различные имена этих же персон (без учета фальшивой разумеется)
+  // ИЗМЕНЕНИЯ: убираем вызов distinct(), т.к. элементы и так не повторяются, когда мы собираем их в Set.
+  // ОБНОВЛЕНИЕ: действительно, вышло так, что остался стрим ряди стрима, у которого нет промежуточных операций,
+  // поэтому убираем и просто создаем HashSet.
+
   public Set<String> getDifferentNames(List<Person> persons) {
-    return getNames(persons).stream().distinct().collect(Collectors.toSet());
+    return new HashSet<>(getNames(persons));
   }
 
   // Тут фронтовая логика, делаем за них работу - склеиваем ФИО
+  /* ИЗМЕНЕНИЯ: два раза проверяем person.secondName() != null,
+   при этом middleName не включенно в результат, сделаем добавление в результат в формате:
+   secondName(фамилия) + firstName(имя) + middleName (отчество)
+   */
   public String convertPersonToString(Person person) {
-    String result = "";
-    if (person.secondName() != null) {
-      result += person.secondName();
-    }
-
-    if (person.firstName() != null) {
-      result += " " + person.firstName();
-    }
-
-    if (person.secondName() != null) {
-      result += " " + person.secondName();
-    }
-    return result;
+    return Stream.of(person.secondName(), person.firstName(), person.middleName())
+        .filter(Objects::nonNull).collect(Collectors.joining(" "));
   }
 
   // словарь id персоны -> ее имя
+  /* ИЗМЕНЕНИЯ: переименовала переменную map в personNamesById(может быть и не обязательно, но понятнее),
+   убираем initialCapacity = 1 из параметра new HashMap<>(), т.к. это может привести к потерям
+   производительности, потому что по сути всё будет записываться в один bucket и
+   время поиска и получения элементов при большом количестве пользователей будет как в обычном списке, а при попытке
+   расширения, элементы будут перезаписываться.
+   При проверке содержится ли уже ключ, мы по сути обращаемся к мапе два раза, можно заменить на putIfAbsent
+   ОБНОВЛЕНИЕ: Переписала, под стримы.
+   */
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    Map<Integer, String> map = new HashMap<>(1);
-    for (Person person : persons) {
-      if (!map.containsKey(person.id())) {
-        map.put(person.id(), convertPersonToString(person));
-      }
-    }
-    return map;
+    return persons.stream()
+        .collect(Collectors.toMap(
+            Person::id,
+            this::convertPersonToString,
+            (oldValue, newValue) -> oldValue
+        ));
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
+  /* ИЗМЕНЕНИЯ: убираем двойной цикл, невыгодно по производительности, сложность в худшем случае О(n*m),
+  если n и m это размеры коллекций соответсвенно, можно было улучшить, добавив return true, как только мы находим
+  совпадения, но если совпадения находятся ближе к концу коллекции, выходит весьма затратно. Нашла метод retainAll,
+  он удаляет элементы из одной коллекции, если они не находятся во второй(противоположность removeAll), а т.к. у HashSet
+  удаление и contains по сложности O(1)(операции у retainAll под капотом), то выходит быстрее. Получаем, что в
+  personSet1, остаются только повторяющиеся элементы, проверяем пустой ли список.
+  ОБНОВЛЕНИЕ: убрала retainAll(). Оказалось у стримов есть anyMatch, которая возращает true, если хоть один элемент
+  потока удовлетворяют условию, в нашем случае указываем contains. Причём, он не смотрит весь список,
+  "если это не требуется для определения результата". В anyMatch передаём personSet1, потому что поиск по сету будет
+  быстрее, чем просто по коллекции
+  */
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
-    boolean has = false;
-    for (Person person1 : persons1) {
-      for (Person person2 : persons2) {
-        if (person1.equals(person2)) {
-          has = true;
-        }
-      }
-    }
-    return has;
+    Set<Person> personSet1 = new HashSet<>(persons1);
+    return persons2.stream().anyMatch(personSet1::contains);
   }
 
   // Посчитать число четных чисел
+  /* ИЗМЕНЕНИЯ: можно сразу посчитать .count() без forEach().
+  Судя по тому, что count приватная и не используется в других методах, её можно было бы убрать
+  */
   public long countEven(Stream<Integer> numbers) {
-    count = 0;
-    numbers.filter(num -> num % 2 == 0).forEach(num -> count++);
-    return count;
+    return numbers.filter(num -> num % 2 == 0).count();
   }
 
   // Загадка - объясните почему assert тут всегда верен
   // Пояснение в чем соль - мы перетасовали числа, обернули в HashSet, а toString() у него вернул их в сортированном порядке
+  /* ОБЪЯСНЕНИЕ: для Integer hashCode() возращает само число. HashSet ищет элементы по хешу, возможно это как то связано
+   с этим, но судя по тестам, если мы зададим не интервал чисел, а произвольные, то работать не будет.
+   ОБНОВЛЕНИЕ: Хорошо, если номер бакета это остаток от деления хеша на их кол-во, то получаем, что:
+   вычисляется хеш бакета - это само число, например 20
+   Реальный размер хешсета это ближайшая степень двойки, в нашем случае 16384.
+   вычисляется номер бакета - это 20%16384 = 20, т.е. хеш и есть значение переменной
+   Получаем, что числа идут ровно по порядку, их хеш разный и они будут строго в разных ячейках таблицы.
+   toString() идёт по порядку, а т.к. даже в неотсортированном виде они по хешу попали в ячейки, со своим значением, то
+   после toString() они случайно окажутся отсортированными. Если мы условно добавим число 20560, хеш которого будет
+   считаться как 4176, а такое число уже есть (собственно 4176), то создаться список где будет лежать значения 20560 и 4176,
+   а при вызове toString(), он напечатает оба элемента, а они идут не в отсортированном виде, то есть assert сломается.
+   */
   void listVsSet() {
     List<Integer> integers = IntStream.rangeClosed(1, 10000).boxed().collect(Collectors.toList());
     List<Integer> snapshot = new ArrayList<>(integers);
     Collections.shuffle(integers);
     Set<Integer> set = new HashSet<>(integers);
+    System.out.println(set);
     assert snapshot.toString().equals(set.toString());
   }
 }
